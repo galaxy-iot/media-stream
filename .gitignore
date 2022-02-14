@@ -1,6 +1,9 @@
 build
 bin
 
+.vscode
+.vs
+
 *.exe
 # Prerequisites
 *.d
