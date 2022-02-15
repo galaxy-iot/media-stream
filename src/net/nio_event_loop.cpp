@@ -20,9 +20,12 @@ static void handle_accept(IO *io) {
 static void handle_read(IO *io) {
     int fd = io->get_fd();
     char buf[4096] = {0};
-    
+    EventLoop *loop = io->loop;
+
     ssize_t n = read(fd,buf,4096);
-    if (n < 0) {
+    if (n <= 0) {
+        close(fd);
+        loop->event_context->remove_raw_event(io,READ_EVENT);
         return;
     }
 
@@ -56,6 +59,11 @@ int NIOLoop::read_io(IO *io,std::function<void (IO *io,char *buf, ssize_t size)>
     return this->event_context->add_raw_event(io);
 }
 
+int NIOLoop::write_io(IO* io, const void* buf, int len) {
+    int fd = io->get_fd();
+    return write(fd,buf,len);
+}
+
 NIOLoop::NIOLoop() {
     this->event_context = std::unique_ptr<EpollEventContext>(new EpollEventContext(this));
     this->set_is_stoped(false);
@@ -66,7 +74,6 @@ NIOLoop::~NIOLoop(){}
 int NIOLoop::init(){
     return this->event_context->init();
 }
-
 
 void NIOLoop::start() {
     while (true) {
@@ -85,8 +92,6 @@ void NIOLoop::start() {
         // handle pendings
         while (!this->pending_io_queue.empty()) {
             IO *io = this->pending_io_queue.front();
-
-            std::cout << io->get_fd() << ":" <<   (io->cb == nullptr) << std::endl;
 
             if (io->cb != nullptr) {
                 io->cb(io);

@@ -17,7 +17,7 @@ class EpollEventContext : public EventContext {
         ~EpollEventContext();
 
         int add_raw_event(IO *event);
-        int remove_raw_event(IO *event);
+        int remove_raw_event(IO *event,int events);
         int schedule_raw_events();
         int init();
 };

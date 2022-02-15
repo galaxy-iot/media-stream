@@ -24,7 +24,7 @@ enum IOType {
 };
 
 class EventLoop {
-    protected:
+    public:
         std::unique_ptr<EventContext> event_context;
         bool         is_stoped;
         std::unordered_map<int, IO*> io_map;
@@ -34,8 +34,7 @@ class EventLoop {
         virtual ~EventLoop() {};
         virtual int accept_io(IO* io,std::function<void (IO *io)>){return 0;};
         virtual int read_io (IO* io, std::function<void (IO *io,char *buf, ssize_t size)>) { return 0;};
-        //virtual int connect(IO* io)  = 0;
-        //virtual int write (IO* io, const void* buf, int len) = 0;
+        virtual int write_io (IO* io, const void* buf, int len) { return 0;};
         //virtual int close (IO* io) = 0;
         virtual void start() {};
         virtual int init() {return 0;};

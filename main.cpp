@@ -10,8 +10,7 @@ void on_close(IO *io) {
 
 void on_read(IO *io,char *buf, ssize_t size) {
     std::cout << buf << std::endl;
-
-    write(io->get_fd(),"hello",6);
+    io->loop->write_io(io,buf,size);
 }
 
 void on_accept(IO* io) {
