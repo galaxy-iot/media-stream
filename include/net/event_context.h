@@ -8,11 +8,10 @@
 // an interface
 class EventContext {
     public:
-        virtual int add_raw_event(IO *event) = 0;
+        virtual int add_raw_event(IO *event, int events) = 0;
         virtual int remove_raw_event(IO *event,int events) = 0;
         virtual int schedule_raw_events() = 0;
         virtual int init() = 0;
 };
-
 
 #endif

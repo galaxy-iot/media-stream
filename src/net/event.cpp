@@ -14,10 +14,6 @@ IO::~IO() {
     close(fd);
 }
 
-void IO::set_accept(uint8_t accept) {
-    this->accept = accept;
-}
-
 void IO::set_fd(int fd) {
     this->fd = fd;
 }
@@ -31,19 +27,53 @@ int IO::get_fd() {
 }
 
 void IO::set_accept_cb(std::function<void (IO *io)> accept_cb) {
+    this->accept = 1;
     this->accept_cb = accept_cb;
+}
+
+std::function<void (IO *io)> IO::get_accept_cb() {
+    return this->accept_cb;
 }
 
 void IO::set_read_cb(std::function<void (IO *io,char *buf, ssize_t size)> read_cb) {
     this->read_cb = read_cb;
 }
 
-void IO::set_read_event(){
-    this->events |= READ_EVENT;
+std::function<void (IO *io,char *buf, ssize_t size)> IO::get_read_cb() {
+    return this->read_cb;
 }
 
-void IO::set_write_event(){
-    this->events |= WRITE_EVENT;
+std::function<void (IO *io)> IO::get_cb() {
+    return this->cb;
+}
+
+EventLoop * IO::get_loop() {
+    return this->loop;
+}
+
+void IO::set_cb(std::function<void (IO *io)> cb){
+    this->cb = cb;
+}
+
+void IO::set_events(int events) {
+    this->events |= events;
+}
+
+void IO::reset() {
+    this->events = 0;
+    this->real_events = 0;
+}
+
+int IO::get_events() {
+    return this->events;
+}
+
+void IO::set_real_events(int events) {
+    this->real_events = events;
+}
+
+int IO::get_real_events(){
+    return this->real_events;
 }
 
 // Event loop definations
@@ -59,7 +89,7 @@ IO* EventLoop::get_io(int fd,EventType event_type) {
 };
 
 void EventLoop::add_io(IO *io, std::function<void (IO *io)> cb) {
-    io->cb = cb;
+    io->set_cb(cb);
     int fd = io->get_fd();
     io_map[fd] = io;
 }
@@ -81,4 +111,12 @@ bool EventLoop::get_is_stoped() {
 
 void EventLoop::append_pending_io(IO *io) {
     this->pending_io_queue.push(io);
+}
+
+int EventLoop::add_event(IO *io,int events) {
+    return this->event_context->add_raw_event(io,events);
+}
+
+int EventLoop::remove_event(IO *io, int events) {
+    return this->event_context->remove_raw_event(io,events);
 }

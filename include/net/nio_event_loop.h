@@ -18,6 +18,9 @@ class NIOLoop : public EventLoop {
         int write_io (IO* io, const void* buf, int len);
         int close (IO* io);
 
+        int add_event(IO *io, int event);
+        int remove_event(IO *io, int event);
+        
         ~NIOLoop();
         NIOLoop();
 };

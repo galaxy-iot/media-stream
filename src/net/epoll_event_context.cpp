@@ -19,21 +19,37 @@ int EpollEventContext::init(){
     return 0;
 }
 
-int EpollEventContext::add_raw_event(IO *io) {
+int EpollEventContext::add_raw_event(IO *io,int events) {
+
     struct epoll_event ee;
     memset(&ee, 0, sizeof(ee));
     int fd = io->get_fd();
     ee.data.fd = fd;
 
-    if (io->events & READ_EVENT) {
+    // pre events
+    if (io->get_events() & READ_EVENT) {
         ee.events |= EPOLLIN;
     }
-
-    if (io->events & WRITE_EVENT) {
+    if (io->get_events() & WRITE_EVENT) {
         ee.events |= EPOLLOUT;
     }
 
-    return epoll_ctl(this->epfd, EPOLL_CTL_ADD, fd, &ee);
+    if (events & READ_EVENT) {
+        ee.events |= EPOLLIN;
+    }
+
+    if (events & WRITE_EVENT) {
+        ee.events |= EPOLLOUT;
+    }
+
+    int op = (io->get_events() == 0) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+
+    if (epoll_ctl(this->epfd, op, fd, &ee) < 0){
+        return -1;
+    }
+
+    io->set_events(events);
+    return 0;
 }
 
 int EpollEventContext::remove_raw_event(IO *io, int events) {
@@ -41,13 +57,15 @@ int EpollEventContext::remove_raw_event(IO *io, int events) {
     struct epoll_event ee;
     memset(&ee, 0, sizeof(ee));
     ee.data.fd = fd;
+
     // pre events
-    if (io->events & READ_EVENT) {
+    if (io->get_events() & READ_EVENT) {
         ee.events |= EPOLLIN;
     }
-    if (io->events & WRITE_EVENT) {
+    if (io->get_events() & WRITE_EVENT) {
         ee.events |= EPOLLOUT;
     }
+
     // now events
     if (events & READ_EVENT) {
         ee.events &= ~EPOLLIN;
@@ -55,8 +73,9 @@ int EpollEventContext::remove_raw_event(IO *io, int events) {
     if (events & WRITE_EVENT) {
         ee.events &= ~EPOLLOUT;
     }
+    int op = ee.events == 0 ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
 
-    return epoll_ctl(this->epfd,EPOLL_CTL_DEL,fd,&ee);
+    return epoll_ctl(this->epfd,op,fd,&ee);
 }
 
 int EpollEventContext::schedule_raw_events() {
@@ -78,11 +97,11 @@ int EpollEventContext::schedule_raw_events() {
             int revents = events[i].events;
 
             if (revents & (EPOLLIN | EPOLLHUP | EPOLLERR)) {
-                io->events |= READ_EVENT;
+                io->set_events(READ_EVENT);
             }
 
             if (revents & (EPOLLOUT | EPOLLHUP | EPOLLERR)) {
-                io->events |= WRITE_EVENT;
+                io->set_events(WRITE_EVENT);
             }
 
             this->loop->append_pending_io(io);

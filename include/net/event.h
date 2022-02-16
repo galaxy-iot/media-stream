@@ -38,23 +38,30 @@ class EventLoop {
         //virtual int close (IO* io) = 0;
         virtual void start() {};
         virtual int init() {return 0;};
+        
         IO *get_io(int fd, EventType event_type);
         void add_io(IO *io, std::function<void (IO *io)> cb);
         void destory_io(int fd);
         void set_is_stoped(bool is_stoped);
         bool get_is_stoped();
         void append_pending_io(IO *io);
+
+        int add_event(IO *io, int events);
+        int remove_event(IO *io, int events);
 };
 
 class IO {
-    public:
+    private:
         int fd;
         uint32_t  accept :1;
         uint32_t  read   :1;
         uint32_t  write  :1;
 
         EventType event_type;
+        // excepted events
         int       events;
+        // real events
+        int       real_events;
         std::function<void (IO *io)> accept_cb;
         std::function<void (IO *io, char *buf, ssize_t size)> read_cb;
         std::function<void (IO *io)> cb;
@@ -65,14 +72,28 @@ class IO {
         IO(int fd,EventType event_type, EventLoop *loop);
         ~IO();
 
-        void set_accept(uint8_t accept);
         void set_fd(int fd);
         bool is_accept();
         int get_fd();
+
         void set_accept_cb(std::function<void (IO *io)> accept_cb);
+        std::function<void (IO *io)> get_accept_cb();
+
         void set_read_cb(std::function<void (IO *io,char *buf, ssize_t size)> read_cb);
-        void set_read_event();
-        void set_write_event();
+        std::function<void (IO *io,char *buf, ssize_t size)> get_read_cb();
+
+        void set_cb(std::function<void (IO *io)> cb);
+        std::function<void (IO *io)> get_cb();
+
+        void set_events(int events);
+        int get_events();
+
+        void set_real_events(int raw_events);
+        int get_real_events();
+
+        EventLoop *get_loop();
+
+        void reset();
 };
 
 #endif
