@@ -3,6 +3,7 @@
 #include "socket.h"
 #include "event.h"
 #include "nio_event_loop.h"
+#include "tcp_server.h"
 
 void on_close(IO *io) {
 
@@ -19,22 +20,6 @@ void on_accept(IO* io) {
 }
 
 int main(){
-    Listener l("0.0.0.0",8080);
-    int serverFd = l.listen();
-    if (serverFd < 0) {
-        std::cout << "init socket failed" << std::endl;
-        exit(-1);
-    }
-
-    NIOLoop loop;
-    loop.init();
-
-    IO e(serverFd,SOCKET_EVENT,&loop);
-    int ret = loop.accept_io(&e,on_accept);
-    if (ret < 0) {
-        std::cout << "accept failed" << std::endl;
-        exit(-1);
-    }
-
-    loop.start();
+    TCPServer s(8080,on_accept);
+    s.start();
 }

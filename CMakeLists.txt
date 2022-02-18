@@ -12,6 +12,7 @@ add_library (net
     src/net/nio_event_loop.cpp
     src/net/socket.cpp
     src/net/epoll_event_context.cpp
+    src/net/tcp_server.cpp
 )
 
 
