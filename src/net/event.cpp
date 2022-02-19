@@ -22,6 +22,18 @@ bool IO::is_accept() {
     return this->accept == 1;
 }
 
+bool IO::is_read() {
+    return this->read == 1;
+}
+
+bool IO::is_write() {
+    return this->write == 1;
+}
+
+bool IO::is_connect() {
+    return this->connect == 1;
+}
+
 int IO::get_fd() {
     return this->fd;
 }
@@ -35,7 +47,13 @@ std::function<void (IO *io)> IO::get_accept_cb() {
     return this->accept_cb;
 }
 
+void IO::set_write_cb(std::function<void (IO *io)> write_cb) {
+    this->write = 1;
+    this->write_cb = write_cb;
+}
+
 void IO::set_read_cb(std::function<void (IO *io,char *buf, ssize_t size)> read_cb) {
+    this->read = 1;
     this->read_cb = read_cb;
 }
 
@@ -59,21 +77,16 @@ void IO::set_events(int events) {
     this->events |= events;
 }
 
+void IO::clear_events(int events) {
+    this->events &= ~events;
+}
+
 void IO::reset() {
     this->events = 0;
-    this->real_events = 0;
 }
 
 int IO::get_events() {
     return this->events;
-}
-
-void IO::set_real_events(int events) {
-    this->real_events = events;
-}
-
-int IO::get_real_events(){
-    return this->real_events;
 }
 
 // Event loop definations

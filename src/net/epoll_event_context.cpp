@@ -20,17 +20,17 @@ int EpollEventContext::init(){
 }
 
 int EpollEventContext::add_raw_event(IO *io,int events) {
-
     struct epoll_event ee;
     memset(&ee, 0, sizeof(ee));
     int fd = io->get_fd();
     ee.data.fd = fd;
 
     // pre events
-    if (io->get_events() & READ_EVENT) {
+    if (io->is_read()) {
         ee.events |= EPOLLIN;
     }
-    if (io->get_events() & WRITE_EVENT) {
+    
+    if (io->is_write()) {
         ee.events |= EPOLLOUT;
     }
 
@@ -48,7 +48,7 @@ int EpollEventContext::add_raw_event(IO *io,int events) {
         return -1;
     }
 
-    io->set_events(events);
+    //io->set_events(events);
     return 0;
 }
 
@@ -59,10 +59,10 @@ int EpollEventContext::remove_raw_event(IO *io, int events) {
     ee.data.fd = fd;
 
     // pre events
-    if (io->get_events() & READ_EVENT) {
+    if (io->is_read()) {
         ee.events |= EPOLLIN;
     }
-    if (io->get_events() & WRITE_EVENT) {
+    if (io->is_write()) {
         ee.events |= EPOLLOUT;
     }
 
@@ -73,6 +73,7 @@ int EpollEventContext::remove_raw_event(IO *io, int events) {
     if (events & WRITE_EVENT) {
         ee.events &= ~EPOLLOUT;
     }
+
     int op = ee.events == 0 ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
 
     return epoll_ctl(this->epfd,op,fd,&ee);
@@ -92,7 +93,6 @@ int EpollEventContext::schedule_raw_events() {
 
     for (int i = 0;i < ret;i++) {
         IO *io = this->loop->get_io(events[i].data.fd, SOCKET_EVENT);
-
         if (io != nullptr) {
             int revents = events[i].events;
 

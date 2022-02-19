@@ -34,8 +34,7 @@ class EventLoop {
         virtual ~EventLoop() {};
         virtual int accept_io(IO* io,std::function<void (IO *io)>){return 0;};
         virtual int read_io (IO* io, std::function<void (IO *io,char *buf, ssize_t size)>) { return 0;};
-        virtual int write_io (IO* io, const void* buf, int len) { return 0;};
-        //virtual int close (IO* io) = 0;
+        virtual int write_io (IO* io, const void* buf, int len,std::function<void (IO *io)>) { return 0;};
         virtual void start() {};
         virtual int init() {return 0;};
         
@@ -53,19 +52,26 @@ class EventLoop {
 class IO {
     private:
         int fd;
-        uint32_t  accept :1;
-        uint32_t  read   :1;
-        uint32_t  write  :1;
-
+        uint32_t  accept  :1;
+        uint32_t  read    :1;
+        uint32_t  write   :1;
+        uint32_t  connect :1;
+        
         EventType event_type;
-        // excepted events
+        // real io events
         int       events;
-        // real events
-        int       real_events;
         std::function<void (IO *io)> accept_cb;
         std::function<void (IO *io, char *buf, ssize_t size)> read_cb;
         std::function<void (IO *io)> cb;
+        std::function<void (IO *io)> write_cb;
+
         EventLoop *loop;
+
+        char *read_buf;
+        int read_buf_len;
+
+        char *write_buf;
+        int write_buf_len;
     public:
         IO();
         IO(EventType event_type, EventLoop *loop);
@@ -73,7 +79,12 @@ class IO {
         ~IO();
 
         void set_fd(int fd);
+
         bool is_accept();
+        bool is_read();
+        bool is_write();
+        bool is_connect();
+
         int get_fd();
 
         void set_accept_cb(std::function<void (IO *io)> accept_cb);
@@ -85,11 +96,12 @@ class IO {
         void set_cb(std::function<void (IO *io)> cb);
         std::function<void (IO *io)> get_cb();
 
-        void set_events(int events);
-        int get_events();
+        void set_write_cb(std::function<void (IO *io)> write_cb);
+        std::function<void (IO *io)> get_write_cb();
 
-        void set_real_events(int raw_events);
-        int get_real_events();
+        void set_events(int events);
+        void clear_events(int events);
+        int get_events();
 
         EventLoop *get_loop();
 

@@ -15,6 +15,8 @@ static void handle_accept(IO *io) {
     if (io->get_accept_cb() != nullptr) {
         io->get_accept_cb()(client_io);
     }
+
+    io->clear_events(READ_EVENT);
 }
 
 static void handle_read(IO *io) {
@@ -33,17 +35,31 @@ static void handle_read(IO *io) {
     if (io->get_read_cb() != nullptr) {
         io->get_read_cb()(io,buf,n);
     }
+
+    io->clear_events(READ_EVENT);
+}
+
+static void handle_write(IO *io){
+    int fd = io->get_fd();
+
+   // write(fd,"hh\n",3);
+
+    EventLoop *loop = io->get_loop();
+    loop->remove_event(io,WRITE_EVENT);
 }
 
 static void handle_events(IO *io) {
     int events = io->get_events();
-
-    if ((events | READ_EVENT) && io->is_accept()) {
+    if ((events & READ_EVENT) && io->is_accept()) {
         handle_accept(io);
     }
 
-    if ((events | READ_EVENT) && !io->is_accept()) {
+    if ((events & READ_EVENT) && !io->is_accept()) {
         handle_read(io);
+    }
+
+    if (events & WRITE_EVENT) {
+        handle_write(io);
     }
 }
 
@@ -56,12 +72,13 @@ int NIOLoop::accept_io(IO *io,std::function<void (IO *io)> cb) {
 int NIOLoop::read_io(IO *io,std::function<void (IO *io,char *buf, ssize_t size)> cb) {
     io->set_read_cb(cb);
     add_io(io,handle_events);
-    return this->event_context->add_raw_event(io,WRITE_EVENT);
+    return this->event_context->add_raw_event(io,READ_EVENT);
 }
 
-int NIOLoop::write_io(IO* io, const void* buf, int len) {
-    int fd = io->get_fd();
-    return write(fd,buf,len);
+int NIOLoop::write_io(IO* io, const void* buf, int len, std::function<void (IO *io)> write_cb) {
+    io->set_write_cb(write_cb);
+    add_io(io,handle_events);
+    return this->event_context->add_raw_event(io,WRITE_EVENT);
 }
 
 NIOLoop::NIOLoop() {
@@ -76,13 +93,10 @@ int NIOLoop::init(){
 }
 
 int NIOLoop::add_event(IO *io, int event) {
-
-
     return 0;
 }
 
 int NIOLoop::remove_event(IO *io, int event) {
-
     return 0;
 }
 
