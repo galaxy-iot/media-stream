@@ -83,10 +83,40 @@ void IO::clear_events(int events) {
 
 void IO::reset() {
     this->events = 0;
+    this->accept = 0;
+    this->read = 0;
+    this->write = 0;
+    this->connect = 0;
+
+    if (this->read_buf != nullptr) {
+        this->read_buf->len = 0;
+    }
+    
+    if (this->write_buf != nullptr) {
+        this->write_buf->len = 0;
+    }
 }
 
 int IO::get_events() {
     return this->events;
+}
+
+Buffer *IO::get_read_buffer() {
+    if (this->read_buf != nullptr) {
+        return this->read_buf;
+    }
+
+    this->read_buf = new Buffer();
+    return this->read_buf;
+}
+
+Buffer *IO::get_write_buffer(){
+    if (this->write_buf != nullptr) {
+        return this->write_buf;
+    }
+
+    this->write_buf = new Buffer();
+    return this->write_buf;
 }
 
 // Event loop definations

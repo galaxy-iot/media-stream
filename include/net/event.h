@@ -12,6 +12,7 @@ class IO;
 
 #include "socket.h"
 #include "event_context.h"
+#include "buffer.h"
 
 enum EventType {
     SOCKET_EVENT
@@ -35,6 +36,7 @@ class EventLoop {
         virtual int accept_io(IO* io,std::function<void (IO *io)>){return 0;};
         virtual int read_io (IO* io, std::function<void (IO *io,char *buf, ssize_t size)>) { return 0;};
         virtual int write_io (IO* io, const void* buf, int len,std::function<void (IO *io)>) { return 0;};
+        virtual void close_io (IO *io) {};
         virtual void start() {};
         virtual int init() {return 0;};
         
@@ -67,11 +69,8 @@ class IO {
 
         EventLoop *loop;
 
-        char *read_buf;
-        int read_buf_len;
-
-        char *write_buf;
-        int write_buf_len;
+        Buffer *read_buf;
+        Buffer *write_buf;
     public:
         IO();
         IO(EventType event_type, EventLoop *loop);
@@ -103,9 +102,14 @@ class IO {
         void clear_events(int events);
         int get_events();
 
+        void append_buffer();
+
         EventLoop *get_loop();
 
         void reset();
+
+        Buffer *get_read_buffer();
+        Buffer *get_write_buffer();
 };
 
 #endif

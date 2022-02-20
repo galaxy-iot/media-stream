@@ -1,4 +1,5 @@
 #include "nio_event_loop.h"
+#include "buffer.h"
 
 static void handle_accept(IO *io) {
     sockaddr client_addr;
@@ -21,19 +22,25 @@ static void handle_accept(IO *io) {
 
 static void handle_read(IO *io) {
     int fd = io->get_fd();
-    char buf[4096] = {0};
+
     EventLoop *loop = io->get_loop();
 
-    ssize_t n = read(fd,buf,4096);
+    /*
+    Buffer *buf = io->get_read_buffer();
+    if (buf == nullptr) {
+        loop->close_io(io);
+        return;
+    }*/
+
+    char buf1[1024] = {0};
+    ssize_t n = read(fd,buf1,1024);
     if (n <= 0) {
-        close(fd);
-        io->reset();
-        loop->remove_event(io,READ_WRITE_EVENT);
+        loop->close_io(io);
         return;
     }
 
     if (io->get_read_cb() != nullptr) {
-        io->get_read_cb()(io,buf,n);
+        io->get_read_cb()(io,buf1,n);
     }
 
     io->clear_events(READ_EVENT);
@@ -41,10 +48,28 @@ static void handle_read(IO *io) {
 
 static void handle_write(IO *io){
     int fd = io->get_fd();
-
-   // write(fd,"hh\n",3);
-
     EventLoop *loop = io->get_loop();
+
+    Buffer *write_buf = io->get_write_buffer();
+    if (write_buf == nullptr) {
+        loop->close_io(io);
+        return;
+    }
+
+    int n = write(fd,write_buf->buf,write_buf->len);
+    if (n < 0) {
+        loop->close_io(io);
+        return;
+    }
+
+    if (n == write_buf->len) {
+        return;
+    }
+
+    if (n < write_buf->len) {
+        write_buf->remove(write_buf->len-n);
+    }
+
     loop->remove_event(io,WRITE_EVENT);
 }
 
@@ -76,9 +101,38 @@ int NIOLoop::read_io(IO *io,std::function<void (IO *io,char *buf, ssize_t size)>
 }
 
 int NIOLoop::write_io(IO* io, const void* buf, int len, std::function<void (IO *io)> write_cb) {
-    io->set_write_cb(write_cb);
-    add_io(io,handle_events);
-    return this->event_context->add_raw_event(io,WRITE_EVENT);
+    int fd = io->get_fd();
+    int n = write(fd,buf,len);
+    if (n < 0) {
+        close_io(io);
+        return -1;
+    }
+
+    if (n == len) {
+        return 0;
+    }
+
+    if (n < len) {
+        Buffer *write_buf = io->get_write_buffer();
+        if (write_buf == nullptr) {
+            return -1;
+        }
+
+        write_buf->append((char *)(buf+n),len-n);
+    }
+
+    return 0;
+}
+
+void NIOLoop::close_io(IO *io) {
+    int fd = io->get_fd();
+    EventLoop *loop = io->get_loop();
+    close(fd);
+    io->reset();
+
+    if (loop != nullptr) {
+        loop->remove_event(io,READ_WRITE_EVENT);
+    }
 }
 
 NIOLoop::NIOLoop() {

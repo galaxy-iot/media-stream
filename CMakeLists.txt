@@ -5,6 +5,7 @@ project (media-stream)
 
 include_directories(
     include/net
+    include/base
 )
 
 add_library (net
@@ -13,6 +14,10 @@ add_library (net
     src/net/socket.cpp
     src/net/epoll_event_context.cpp
     src/net/tcp_server.cpp
+)
+
+add_library(base 
+    src/base/buffer.cpp
 )
 
 
@@ -24,3 +29,4 @@ SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 add_executable(media-stream main.cpp)
 
 target_link_libraries(media-stream net)
+target_link_libraries(media-stream base)

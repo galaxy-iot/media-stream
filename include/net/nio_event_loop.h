@@ -16,7 +16,7 @@ class NIOLoop : public EventLoop {
         int connect(IO* io);
         int read_io (IO* io,std::function<void (IO *io,char *buf, ssize_t size)>);
         int write_io (IO* io, const void* buf, int len,std::function<void (IO *io)>);
-        int close (IO* io);
+        void close_io (IO* io);
 
         int add_event(IO *io, int event);
         int remove_event(IO *io, int event);
